@@ -20,11 +20,11 @@ def info_from_p2p_addr(addr):
         raise InvalidAddrError()
 
     ipfspart = parts[-1]
-    if ipfspart.protocols()[0].code != multiaddr.protocols.P_IPFS:
+    if ipfspart.protocols()[0].code != multiaddr.protocols.P_P2P:
         raise InvalidAddrError()
 
     # make sure the /ipfs value parses as a peer.ID
-    peer_id_str = ipfspart.value_for_protocol(multiaddr.protocols.P_IPFS)
+    peer_id_str = ipfspart.value_for_protocol(multiaddr.protocols.P_P2P)
     peer_id = id_b58_decode(peer_id_str)
 
     # we might have received just an / ipfs part, which means there's no addr.
