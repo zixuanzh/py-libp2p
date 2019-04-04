@@ -2,6 +2,7 @@ import asyncio
 import multiaddr
 import pytest
 import struct
+import urllib.request
 
 from threading import Thread
 from tests.utils import cleanup
@@ -285,5 +286,136 @@ async def test_simple_seven_nodes_tree_words_out_of_order_ids():
         for i in range(num_nodes):
             assert collected[i] == correct_words
             assert len(collected[i]) == len(correct_words)
+
+    await perform_test(num_nodes, adj_map, action_func, assertion_func)
+
+def download_bee_movie():
+    url = "https://gist.githubusercontent.com/stuckinaboot/c531823814af1f6785f75ed7eedf60cb/raw/5107c5e6c2fda2ff54cfcc9803bbb297a53db71b/bee_movie.txt"
+    response = urllib.request.urlopen(url)
+    data = response.read()      # a `bytes` object
+    text = data.decode('utf-8') # a `str`; this step can't be used if data is binary
+    return text
+
+@pytest.mark.asyncio
+async def test_simple_two_nodes_bee_movie():
+    print("Downloading Bee Movie")
+    bee_movie_script = download_bee_movie()
+    print("Downloaded Bee Movie")
+    bee_movie_words = bee_movie_script.split(" ")
+    print("Bee Movie Script Split on Spaces, # spaces = " + str(len(bee_movie_words)))
+
+    num_nodes = 2
+    adj_map = {0: [1]}
+    collected = []
+
+    async def collect_all_words(expected_len, dummy_node, log_nodes=[]):
+        collected_words = []
+        while True:
+            word = await dummy_node.get_next_word_in_bee_movie()
+            collected_words.append(word)
+
+            # Log if needed
+            if dummy_node in log_nodes:
+                print(word + "| " + str(len(collected_words)) + "/" + str(expected_len))
+
+            if len(collected_words) == expected_len:
+                print("Returned collected words")
+                return collected_words
+
+    async def action_func(dummy_nodes):
+        print("Start action function")
+        words = bee_movie_words
+        tasks = []
+
+        print("Add collect all words")
+        log_nodes = [dummy_nodes[0]]
+        for i in range(num_nodes):
+            tasks.append(collect_all_words(len(words), dummy_nodes[i], log_nodes))
+
+        print("Add sleep")
+        tasks.append(asyncio.sleep(0.25))
+
+        print("Add publish")
+        for i in range(len(words)):
+            tasks.append(dummy_nodes[0].publish_bee_movie_word(words[i]))    
+
+        print("Perform gather")
+        res = await asyncio.gather(*tasks)
+        
+        print("Filling collected")
+        nonlocal collected
+        for i in range(num_nodes):
+            collected.append(res[i])
+        print("Filled collected")
+
+    async def assertion_func(dummy_node):
+        print("Perform assertion")
+        correct_words = bee_movie_words
+        for i in range(num_nodes):
+            assert collected[i] == correct_words
+            assert len(collected[i]) == len(correct_words)
+        print("Assertion performed")
+
+    await perform_test(num_nodes, adj_map, action_func, assertion_func)
+
+@pytest.mark.asyncio
+async def test_simple_seven_nodes_tree_bee_movie():
+    print("Downloading Bee Movie")
+    bee_movie_script = download_bee_movie()
+    print("Downloaded Bee Movie")
+    bee_movie_words = bee_movie_script.split(" ")
+    print("Bee Movie Script Split on Spaces, # spaces = " + str(len(bee_movie_words)))
+
+    num_nodes = 7
+    adj_map = {0: [1, 2], 1: [3, 4], 2: [5, 6]}
+    collected = []
+
+    async def collect_all_words(expected_len, dummy_node, log_nodes=[]):
+        collected_words = []
+        while True:
+            word = await dummy_node.get_next_word_in_bee_movie()
+            collected_words.append(word)
+
+            # Log if needed
+            if dummy_node in log_nodes:
+                print(word + "| " + str(len(collected_words)) + "/" + str(expected_len))
+
+            if len(collected_words) == expected_len:
+                print("Returned collected words")
+                return collected_words
+
+    async def action_func(dummy_nodes):
+        print("Start action function")
+        words = bee_movie_words
+        tasks = []
+
+        print("Add collect all words")
+        log_nodes = [dummy_nodes[0]]
+        for i in range(num_nodes):
+            tasks.append(collect_all_words(len(words), dummy_nodes[i], log_nodes))
+
+        print("Add sleep")
+        tasks.append(asyncio.sleep(0.25))
+
+        print("Add publish")
+        for i in range(len(words)):
+            tasks.append(dummy_nodes[0].publish_bee_movie_word(words[i]))    
+
+        print("Perform gather")
+        res = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        print("Filling collected")
+        nonlocal collected
+        for i in range(num_nodes):
+            collected.append(res[i])
+        print("Filled collected")
+
+    async def assertion_func(dummy_node):
+        print("Perform assertion")
+        correct_words = bee_movie_words
+        for i in range(num_nodes):
+            assert collected[i] == correct_words
+            assert len(collected[i]) == len(correct_words)
+        print("Assertion performed")
 
     await perform_test(num_nodes, adj_map, action_func, assertion_func)

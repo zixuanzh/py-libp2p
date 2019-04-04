@@ -71,16 +71,16 @@ class MsgOrderingNode():
         asyncio.ensure_future(self.handle_incoming_msgs())
 
     async def publish_bee_movie_word(self, word, msg_id=None):
-        print("Publish hit for " + word)
+        # print("Publish hit for " + word)
         my_id = str(self.libp2p_node.get_id())
         if msg_id is None:
             msg_id = self.next_msg_id_func()
         packet = generate_RPC_packet(my_id, [BEE_MOVIE_TOPIC], word, msg_id)
-        print("Packet generated")
+        # print("Packet generated")
         await self.floodsub.publish(my_id, packet.SerializeToString())
 
     async def handle_bee_movie_word(self, seqno, word):
-        print("Handle hit for " + str(seqno) + ", " + word)
+        # print("Handle hit for " + str(seqno) + ", " + word)
         await self.priority_queue.put((seqno, word))
 
     async def get_next_word_in_bee_movie(self):
