@@ -199,3 +199,47 @@ async def test_simple_two_nodes_ten_words_out_of_order_ids():
         assert len(collected) == len(correct_words)
 
     await perform_test(num_nodes, adj_map, action_func, assertion_func)
+
+@pytest.mark.asyncio
+async def test_simple_five_nodes_rings_words_out_of_order_ids():
+    num_nodes = 5
+    adj_map = {0: [1], 1: [2], 2: [3], 3: [4], 4: [0]}
+    collected = []
+
+    async def collect_all_words(expected_len, dummy_node):
+        collected_words = []
+        while True:
+            word = await dummy_node.get_next_word_in_bee_movie()
+            collected_words.append(word)
+            if len(collected_words) == expected_len:
+                return collected_words
+
+    async def action_func(dummy_nodes):
+        words = ["e", "b", "d", "i", "a", "h", "c", "f", "g", "j"]
+        msg_id_nums = [5, 2, 4, 9, 1, 8, 3, 6, 7, 10]
+        msg_ids = []
+        tasks = []
+        for msg_id_num in msg_id_nums:
+            msg_ids.append(struct.pack('>I', msg_id_num))
+
+        for i in range(num_nodes):
+            tasks.append(collect_all_words(len(words), dummy_nodes[i]))
+
+        tasks.append(asyncio.sleep(0.25))
+
+        for i in range(len(words)):
+            tasks.append(dummy_nodes[0].publish_bee_movie_word(words[i], msg_ids[i]))    
+
+        res = await asyncio.gather(*tasks)
+        
+        nonlocal collected
+        for i in range(num_nodes):
+            collected.append(res[i])
+
+    async def assertion_func(dummy_node):
+        correct_words = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
+        for i in range(num_nodes):
+            assert collected[i] == correct_words
+            assert len(collected[i]) == len(correct_words)
+
+    await perform_test(num_nodes, adj_map, action_func, assertion_func)
