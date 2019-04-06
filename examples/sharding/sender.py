@@ -10,8 +10,6 @@ from libp2p.pubsub.floodsub import FloodSub
 
 SUPPORTED_PUBSUB_PROTOCOLS = ["/floodsub/1.0.0"]
 TOPIC = "eth"
-NUM_RECEIVERS = 10
-TIME_LENGTH = 1000 # seconds, double check
 
 class SenderNode():
     """
@@ -22,7 +20,6 @@ class SenderNode():
 
     def __init__(self):
         self.next_msg_id_func = message_id_generator(0)
-        self.node_id = str(uuid.uuid1())
         self.ack_queue = asyncio.Queue()
 
     @classmethod
@@ -43,21 +40,27 @@ class SenderNode():
 
         self.floodsub = FloodSub(SUPPORTED_PUBSUB_PROTOCOLS)
         self.pubsub = Pubsub(self.libp2p_node, self.floodsub, "a")
-        await pubsub.subscribe(TOPIC)
+        await self.pubsub.subscribe(TOPIC)
+
+        self.test_being_performed = True
+
+        this = self
 
         async def ack_stream_handler(stream):
-            while True:
+            while self.test_being_performed:
                 ack = await stream.read()
-
                 if ack is not None:
-                    await ack_queue.put(ack)
+                    await self.ack_queue.put(ack)
 
+            # Reached once test_being_performed is False
+            # Notify receivers test is over
+            await stream.write("end".encode())
         # Set handler for acks
-        self.libp2p_node.set_stream_handler("/ack/1", ack_stream_handler)
+        self.libp2p_node.set_stream_handler("/ack/1.0.0", ack_stream_handler)
 
         return self
 
-    def perform_test():
+    async def perform_test(self, num_receivers, time_length):
         # Time and loop
         start = timer()
         curr_time = timer()
@@ -65,15 +68,23 @@ class SenderNode():
         my_id = str(self.libp2p_node.get_id())
         msg_contents = "transaction"
 
-        while (curr_time - start) < TIME_LENGTH:
+        num_sent = 0
+        num_fully_ack = 0
+        while (curr_time - start) < time_length:
             # Send message (NOTE THIS IS JUST ONE TOPIC)
             packet = generate_RPC_packet(my_id, [TOPIC], msg_contents, self.next_msg_id_func())
-            await floodsub.publish(my_id, packet.SerializeToString())
-
+            await self.floodsub.publish(my_id, packet.SerializeToString())
+            num_sent += 1
             # Wait for acks
             num_acks = 0
-            while num_acks < NUM_RECEIVERS:
+            while num_acks < num_receivers:
                 await self.ack_queue.get()
                 num_acks += 1
+            num_fully_ack += 1
+            curr_time = timer()
 
-        curr_time = timer()
+        print("Num sent: " + str(num_sent))
+        print("Num fully ack: " + str(num_fully_ack))
+        # Do something interesting with test results
+        # End test
+        self.test_being_performed = False
