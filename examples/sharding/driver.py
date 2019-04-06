@@ -4,11 +4,13 @@ from receiver import ReceiverNode
 from libp2p.peer.peerinfo import info_from_p2p_addr
 from tests.utils import cleanup
 
+ACK_PROTOCOL = "/ack/1.0.0"
 
-async def create_receivers(num_receivers):
+async def create_receivers(num_receivers, topic_map):
     receivers = []
+    # Create receivers
     for i in range(num_receivers):
-        receivers.append(await ReceiverNode.create())
+        receivers.append(await ReceiverNode.create(ACK_PROTOCOL, topic_map[i]))
     return receivers
 
 async def connect(node1, node2):
@@ -32,21 +34,43 @@ async def create_topology(adjacency_map, sender, receivers):
                 await connect(receivers[source_num].libp2p_node, \
                     receivers[target_num].libp2p_node)
 
+def get_num_receivers_in_topology(topology):
+    receiver_ids = []
+    for key in topology:
+        if key != "sender":
+            if key not in receiver_ids:
+                receiver_ids.append(key)
+        for neighbor in topology[key]:
+            if neighbor not in receiver_ids:
+                receiver_ids.append(neighbor)
+    return len(receiver_ids)
+
 async def main():
     # Create sender
     print("Sender created")
-    sender = await SenderNode.create()
+    sender = await SenderNode.create(ACK_PROTOCOL)
 
     # Create receivers
     print("Receivers created")
-    # sender_id = sender.libp2p_node.get_id()
-    receivers = await create_receivers(2)
 
-    # Define topology
+    # Define connection topology
     topology = {
         "sender": [0],
-        0: [1]
+        0: [1, 2],
+        1: [3, 4],
+        2: [5, 6]
     }
+
+    num_receivers = get_num_receivers_in_topology(topology)
+    
+    # Define topic map
+    topic_map = {}
+    for num in range(num_receivers):
+        topic_map[num] = "1"
+
+    topics = ["1"]
+
+    receivers = await create_receivers(num_receivers, topic_map)
 
     # Create network topology
     await create_topology(topology, sender, receivers)
@@ -58,11 +82,13 @@ async def main():
     for receiver in receivers:
         print("Starting receiving")
         asyncio.ensure_future(receiver.start_receiving(sender_info))
+
+    # Allow time for start receiving to be completed
     await asyncio.sleep(0.5)
 
     # 2) Start sending messages and perform throughput test
     print("Performing test")
-    await sender.perform_test(2, 5)
+    await sender.perform_test(num_receivers, topics, 1)
 
     await cleanup()
 

@@ -21,7 +21,7 @@ class ReceiverNode():
         self.next_msg_id_func = message_id_generator(0)
 
     @classmethod
-    async def create(cls):
+    async def create(cls, ack_protocol, topic):
         """
         Create a new DummyAccountNode and attach a libp2p node, a floodsub, and a pubsub
         instance to this new node
@@ -39,7 +39,10 @@ class ReceiverNode():
         self.floodsub = FloodSub(SUPPORTED_PUBSUB_PROTOCOLS)
         self.pubsub = Pubsub(self.libp2p_node, self.floodsub, "a")
 
-        self.pubsub_messages = await self.pubsub.subscribe(TOPIC)
+        self.pubsub_messages = await self.pubsub.subscribe(topic)
+        self.topic = topic
+
+        self.ack_protocol = ack_protocol
 
         return self
 
@@ -50,11 +53,12 @@ class ReceiverNode():
 
     async def start_receiving(self, sender_node_info):
         await self.libp2p_node.connect(sender_node_info)
-        ack_stream = await self.libp2p_node.new_stream(sender_node_info.peer_id, ["/ack/1.0.0"])
+        ack_stream = await self.libp2p_node.new_stream(sender_node_info.peer_id, [self.ack_protocol])
         asyncio.ensure_future(self.wait_for_end(ack_stream))
 
-        # TODO: get peer id
         self.should_listen = True
+        ack_msg = self.topic
+        encoded_ack_msg = ack_msg.encode()
         while self.should_listen:
             msg = await self.pubsub_messages.get()
-            await ack_stream.write("ack".encode())
+            await ack_stream.write(encoded_ack_msg)

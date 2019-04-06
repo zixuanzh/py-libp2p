@@ -23,7 +23,7 @@ class SenderNode():
         self.ack_queue = asyncio.Queue()
 
     @classmethod
-    async def create(cls):
+    async def create(cls, ack_protocol):
         """
         Create a new DummyAccountNode and attach a libp2p node, a floodsub, and a pubsub
         instance to this new node
@@ -56,11 +56,12 @@ class SenderNode():
             # Notify receivers test is over
             await stream.write("end".encode())
         # Set handler for acks
-        self.libp2p_node.set_stream_handler("/ack/1.0.0", ack_stream_handler)
+        self.ack_protocol = ack_protocol
+        self.libp2p_node.set_stream_handler(self.ack_protocol, ack_stream_handler)
 
         return self
 
-    async def perform_test(self, num_receivers, time_length):
+    async def perform_test(self, num_receivers, topics, time_length):
         # Time and loop
         start = timer()
         curr_time = timer()
@@ -72,7 +73,7 @@ class SenderNode():
         num_fully_ack = 0
         while (curr_time - start) < time_length:
             # Send message (NOTE THIS IS JUST ONE TOPIC)
-            packet = generate_RPC_packet(my_id, [TOPIC], msg_contents, self.next_msg_id_func())
+            packet = generate_RPC_packet(my_id, topics, msg_contents, self.next_msg_id_func())
             await self.floodsub.publish(my_id, packet.SerializeToString())
             num_sent += 1
             # Wait for acks
@@ -83,8 +84,9 @@ class SenderNode():
             num_fully_ack += 1
             curr_time = timer()
 
+        # Do something interesting with test results
         print("Num sent: " + str(num_sent))
         print("Num fully ack: " + str(num_fully_ack))
-        # Do something interesting with test results
+        
         # End test
         self.test_being_performed = False
