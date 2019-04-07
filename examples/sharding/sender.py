@@ -56,8 +56,8 @@ class SenderNode():
                 ack = await stream.read()
                 if ack is not None:
                     await self.ack_queue.put(ack)
-                # else:
-                #     break
+                else:
+                    break
             # Reached once test_being_performed is False
             # Notify receivers test is over
             print("Writing end")
