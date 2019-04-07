@@ -49,7 +49,6 @@ class ReceiverNode():
     async def wait_for_end(self, ack_stream):
         msg = (await ack_stream.read()).decode()
         if msg == "end":
-            print("END RECEIVED, KILL NOW")
             self.should_listen = False
 
     async def start_receiving(self, sender_node_info):
