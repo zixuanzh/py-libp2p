@@ -48,13 +48,6 @@ class SenderNode():
         this = self
 
         all_streams = []
-        cleanup_called = False
-        async def stream_cleanup():
-            cleanup_called = True
-            for stream in all_streams:
-                await stream.write("end".encode())
-            await asyncio.sleep(0.25)
-            await cleanup()
 
         async def ack_stream_handler(stream):
             all_streams.append(stream)
@@ -63,13 +56,12 @@ class SenderNode():
                 ack = await stream.read()
                 if ack is not None:
                     await self.ack_queue.put(ack)
-                else:
-                    break
-
+                # else:
+                #     break
             # Reached once test_being_performed is False
             # Notify receivers test is over
-            if not cleanup_called:
-                await stream_cleanup()
+            print("Writing end")
+            await stream.write("end".encode())
 
         # Set handler for acks
         self.ack_protocol = ack_protocol
@@ -92,23 +84,21 @@ class SenderNode():
         self.topic_ack_queues = {}
         for topic in topics:
             self.topic_ack_queues[topic] = asyncio.Queue()
-
+        completed_topics_count = 0
+        num_topics = len(topics)
         async def handle_ack_queues():
             start = timer()
             curr_time = timer()
-            while (curr_time - start) < time_length:
+
+            print("Handling ack queues")
+            nonlocal completed_topics_count, num_topics
+            while completed_topics_count < num_topics:
                 ack = await self.ack_queue.get()
-                if ack is None:
-                    break
                 decoded_ack = ack.decode()
 
                 await self.topic_ack_queues[decoded_ack].put(decoded_ack)
-                # print("ADDING TO TOPIC ACK QUEUE " + str(topic))
-                curr_time = timer()
-            # print("EXI HANDLE ACK QUES")
-            self.test_being_performed = False
 
-        gathered = None
+                curr_time = timer()
 
         async def end_all_async():
             # Add None to all queues indicating that we should break the loop
@@ -126,7 +116,7 @@ class SenderNode():
             while (curr_time - start) < time_length and self.test_being_performed:
                 # Send message (NOTE THIS IS JUST ONE TOPIC)
                 packet = generate_RPC_packet(my_id, [topic], msg_contents, self.next_msg_id_func())
-                # print("PUBLISHED")
+
                 await self.floodsub.publish(my_id, packet.SerializeToString())
                 num_sent_in_each_topic[topic] += 1
                 
@@ -140,15 +130,17 @@ class SenderNode():
                 # event-driven setting?
                 while num_acks < num_receivers_in_each_topic[topic] and self.test_being_performed:
                     ack = await self.topic_ack_queues[topic].get()
-                    if ack is None:
-                        return
                     num_acks += 1
                 num_acks_in_each_topic[topic] += 1
                 curr_time = timer()
-            self.test_being_performed = False
 
-            await end_all_async()
-            # await cleanup()
+            nonlocal completed_topics_count, num_topics
+            print("Test completed " + topic)
+            completed_topics_count += 1
+            self.test_being_performed = False
+            if completed_topics_count == num_topics:
+                print("End all async")
+                await end_all_async()
 
         tasks = [asyncio.ensure_future(handle_ack_queues())]
 

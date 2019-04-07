@@ -50,6 +50,7 @@ class ReceiverNode():
         msg = (await ack_stream.read()).decode()
         if msg == "end":
             self.should_listen = False
+            print("End received")
 
     async def start_receiving(self, sender_node_info):
         await self.libp2p_node.connect(sender_node_info)
