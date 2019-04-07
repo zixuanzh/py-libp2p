@@ -8,9 +8,16 @@ ACK_PROTOCOL = "/ack/1.0.0"
 
 async def create_receivers(num_receivers, topic_map):
     receivers = []
+
+    # From topic_map (topic -> list of receivers), create (receiver -> topic)
+    receiver_to_topic_map = {}
+    for topic in topic_map:
+        for receiver in topic_map[topic]:
+            receiver_to_topic_map[receiver] = topic
+
     # Create receivers
     for i in range(num_receivers):
-        receivers.append(await ReceiverNode.create(ACK_PROTOCOL, topic_map[i]))
+        receivers.append(await ReceiverNode.create(ACK_PROTOCOL, receiver_to_topic_map[i]))
     return receivers
 
 async def connect(node1, node2):
@@ -55,20 +62,19 @@ async def main():
 
     # Define connection topology
     topology = {
-        "sender": [0],
-        0: [1, 2],
-        1: [3, 4],
-        2: [5, 6]
+        "sender": [0, 1]
     }
 
     num_receivers = get_num_receivers_in_topology(topology)
     
     # Define topic map
-    topic_map = {}
-    for num in range(num_receivers):
-        topic_map[num] = "1"
+    topic_map = {
+        # "1": [x for x in range(num_receivers)]
+        "1": [0],
+        "2": [1]
+    }
 
-    topics = ["1"]
+    topics = topic_map.keys()
 
     receivers = await create_receivers(num_receivers, topic_map)
 
@@ -87,11 +93,14 @@ async def main():
     await asyncio.sleep(0.5)
 
     # 2) Start sending messages and perform throughput test
+    # Determine number of receivers in each topic
+    num_receivers_in_each_topic = {}
+    for topic in topic_map:
+        num_receivers_in_each_topic[topic] = len(topic_map[topic])
     print("Performing test")
-    await sender.perform_test(num_receivers, topics, 1)
+    await sender.perform_test(num_receivers_in_each_topic, topics, 1)
 
     await cleanup()
-
 
 
 if __name__ == "__main__":
