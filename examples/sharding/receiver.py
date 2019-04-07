@@ -63,3 +63,4 @@ class ReceiverNode():
         while self.should_listen:
             msg = await self.pubsub_messages.get()
             await ack_stream.write(encoded_ack_msg)
+        print("Receiver closed")

@@ -62,16 +62,17 @@ async def main():
 
     # Define connection topology
     topology = {
-        "sender": [0, 1]
+        "sender": [0, 2, 4],
+        0: [1],
+        2: [3],
+        4: [5]
     }
 
     num_receivers = get_num_receivers_in_topology(topology)
     
     # Define topic map
     topic_map = {
-        # "1": [x for x in range(num_receivers)]
-        "1": [0],
-        "2": [1]
+        "1": [0, 1, 2, 3, 4, 5]
     }
 
     topics = topic_map.keys()
