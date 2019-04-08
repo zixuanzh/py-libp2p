@@ -58,11 +58,8 @@ def get_num_receivers_in_topology(topology):
 
 async def main():
     # Create sender
-    print("Sender created")
     sender = await SenderNode.create(ACK_PROTOCOL)
-
-    # Create receivers
-    print("Receivers created")
+    print("Sender created")
 
     # Define connection topology
     topology_dict = json.loads(open(sys.argv[1]).read())
@@ -76,14 +73,16 @@ async def main():
 
     topics = topic_map.keys()
 
+    # Create receivers
     receivers = await create_receivers(num_receivers, topic_map)
+    print("Receivers created")
 
     # Create network topology
     await create_topology(topology, sender, receivers)
     print("Topology created")
 
     # Perform throughput test
-    # 1) Start receivers 
+    # First, start receivers 
     sender_info = info_from_p2p_addr(sender.libp2p_node.get_addrs()[0])
     for receiver in receivers:
         print("Starting receiving")
@@ -92,13 +91,14 @@ async def main():
     # Allow time for start receiving to be completed
     await asyncio.sleep(0.5)
 
-    # 2) Start sending messages and perform throughput test
+    # Start sending messages and perform throughput test
     # Determine number of receivers in each topic
     num_receivers_in_each_topic = {}
     for topic in topic_map:
         num_receivers_in_each_topic[topic] = len(topic_map[topic])
     print("Performing test")
     await sender.perform_test(num_receivers_in_each_topic, topics, 10)
+    
     print("All testing completed")
     await cleanup()
 

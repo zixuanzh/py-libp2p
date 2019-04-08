@@ -47,8 +47,8 @@
         
 
         // parsing and collecting nodes and edges from the python
-        nodes = new vis.DataSet([{"color": "#70ec84", "id": 0, "label": 0, "shape": "dot"}, {"color": "#70ec84", "id": 1, "label": 1, "shape": "dot"}, {"color": "#70ec84", "id": 2, "label": 2, "shape": "dot"}, {"color": "#70ec84", "id": 3, "label": 3, "shape": "dot"}, {"id": "sender", "label": "sender", "shape": "dot"}]);
-        edges = new vis.DataSet([{"from": "sender", "to": 0}, {"from": 0, "to": 1}, {"from": 1, "to": 2}, {"from": 2, "to": 3}]);
+        nodes = new vis.DataSet([{"color": "#70ec84", "id": 0, "label": 0, "shape": "dot"}, {"color": "#70ec84", "id": 1, "label": 1, "shape": "dot"}, {"color": "#ffa07a", "id": 2, "label": 2, "shape": "dot"}, {"color": "#ffa07a", "id": 3, "label": 3, "shape": "dot"}, {"color": "#005582", "id": 4, "label": 4, "shape": "dot"}, {"color": "#005582", "id": 5, "label": 5, "shape": "dot"}, {"id": "sender", "label": "sender", "shape": "dot"}]);
+        edges = new vis.DataSet([{"from": "sender", "to": 0}, {"from": "sender", "to": 2}, {"from": "sender", "to": 4}, {"from": 0, "to": 1}, {"from": 2, "to": 3}, {"from": 4, "to": 5}]);
 
         // adding nodes and edges to the graph
         data = {nodes: nodes, edges: edges};

@@ -14,9 +14,7 @@ TOPIC = "eth"
 
 class SenderNode():
     """
-    Node which has an internal balance mapping, meant to serve as 
-    a dummy crypto blockchain. There is no actual blockchain, just a simple
-    map indicating how much crypto each user in the mappings holds
+    SenderNode which pings ReceiverNodes continuously to perform benchmarking
     """
 
     def __init__(self):

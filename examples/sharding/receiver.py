@@ -23,7 +23,7 @@ class ReceiverNode():
     @classmethod
     async def create(cls, ack_protocol, topic):
         """
-        Create a new DummyAccountNode and attach a libp2p node, a floodsub, and a pubsub
+        Create a new ReceiverNode and attach a libp2p node, a floodsub, and a pubsub
         instance to this new node
 
         We use create as this serves as a factory function and allows us
