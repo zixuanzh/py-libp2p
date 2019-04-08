@@ -117,7 +117,7 @@ class SenderNode():
             # Perform test while time is not up here AND
             # while time is not up in handle_ack_queues, which is checked with the
             # self.test_being_performed boolean
-            while (curr_time - start) < time_length and self.test_being_performed:
+            while (curr_time - start) < time_length:
                 # Send message on single topic
                 packet = generate_RPC_packet(my_id, [topic], msg_contents, self.next_msg_id_func())
 
@@ -132,7 +132,7 @@ class SenderNode():
                 # self.test_being_performed boolean 
                 # TODO: Check safety of this. Does this make sense in the asyncio
                 # event-driven setting?
-                while num_acks < num_receivers_in_each_topic[topic] and self.test_being_performed:
+                while num_acks < num_receivers_in_each_topic[topic]:
                     ack = await self.topic_ack_queues[topic].get()
                     num_acks += 1
                 num_acks_in_each_topic[topic] += 1

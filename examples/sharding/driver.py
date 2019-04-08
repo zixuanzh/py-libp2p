@@ -98,7 +98,7 @@ async def main():
     for topic in topic_map:
         num_receivers_in_each_topic[topic] = len(topic_map[topic])
     print("Performing test")
-    await sender.perform_test(num_receivers_in_each_topic, topics, 1)
+    await sender.perform_test(num_receivers_in_each_topic, topics, 10)
     print("All testing completed")
     await cleanup()
 

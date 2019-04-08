@@ -47,7 +47,11 @@ class ReceiverNode():
         return self
 
     async def wait_for_end(self, ack_stream):
-        msg = (await ack_stream.read()).decode()
+        # Continue waiting for end message, even if None (i.e. timeout) is received
+        msg = await ack_stream.read()
+        while msg is None:
+            msg = await ack_stream.read()
+        msg = msg.decode()
         if msg == "end":
             self.should_listen = False
             print("End received")
