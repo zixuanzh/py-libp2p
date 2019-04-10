@@ -79,10 +79,12 @@ class TCP(ITransport):
 
         # First: send our peer ID so receiver knows it
         writer.write(id_b58_encode(self_id).encode())
+        print("Length of written id is " + str(len(id_b58_encode(self_id).encode())))
         await writer.drain()
 
         # Await ack for peer id
         ack = (await reader.read(1024)).decode()
+        print(ack)
 
         if ack != "received peer id":
             raise Exception("Receiver did not receive peer id")

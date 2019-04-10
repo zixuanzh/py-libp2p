@@ -38,6 +38,9 @@ class MplexStream(IMuxedStream):
         write to stream
         :return: number of bytes written
         """
+        print("Writing message")
+        print(self.stream_id)
+        print(self.mplex_conn.peer_id)
         return await self.mplex_conn.send_message(
             get_flag(self.initiator, "MESSAGE"), data, self.stream_id)
 

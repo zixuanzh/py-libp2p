@@ -6,6 +6,7 @@ from timeit import default_timer as timer
 from tests.utils import cleanup
 from tests.pubsub.utils import generate_RPC_packet, message_id_generator
 from libp2p import new_node
+from libp2p.peer.id import ID
 from libp2p.pubsub.pubsub import Pubsub
 from libp2p.pubsub.floodsub import FloodSub
 
@@ -22,7 +23,7 @@ class SenderNode():
         self.ack_queue = asyncio.Queue()
 
     @classmethod
-    async def create(cls, ack_protocol):
+    async def create(cls, node_id, transport_opt_str, ack_protocol):
         """
         Create a new DummyAccountNode and attach a libp2p node, a floodsub, and a pubsub
         instance to this new node
@@ -32,8 +33,13 @@ class SenderNode():
         """
         self = SenderNode()
 
-        libp2p_node = await new_node(transport_opt=["/ip4/127.0.0.1/tcp/0"])
-        await libp2p_node.get_network().listen(multiaddr.Multiaddr("/ip4/127.0.0.1/tcp/0"))
+        id_opt = ID("peer-" + node_id)
+
+        print("Sender id: " + id_opt.pretty())
+        print("Transport opt is " + transport_opt_str)
+
+        libp2p_node = await new_node(transport_opt=[transport_opt_str])
+        await libp2p_node.get_network().listen(multiaddr.Multiaddr(transport_opt_str))
 
         self.libp2p_node = libp2p_node
 
@@ -60,6 +66,8 @@ class SenderNode():
             print("Writing end")
             await stream.write("end".encode())
 
+
+        print("Sender ack protocol: " + ack_protocol)
         # Set handler for acks
         self.ack_protocol = ack_protocol
         self.libp2p_node.set_stream_handler(self.ack_protocol, ack_stream_handler)

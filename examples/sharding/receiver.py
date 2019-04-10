@@ -34,15 +34,15 @@ class ReceiverNode():
 
         id_opt = ID("peer-" + node_id)
 
-        libp2p_node = await new_node(id_opt=id_opt, transport_opt=[transport_opt_str])
+        libp2p_node = await new_node(transport_opt=[transport_opt_str])
         await libp2p_node.get_network().listen(multiaddr.Multiaddr(transport_opt_str))
 
         self.libp2p_node = libp2p_node
 
-        self.floodsub = FloodSub(SUPPORTED_PUBSUB_PROTOCOLS)
-        self.pubsub = Pubsub(self.libp2p_node, self.floodsub, "a")
+        self.floodsub = None #FloodSub(SUPPORTED_PUBSUB_PROTOCOLS)
+        self.pubsub = None #Pubsub(self.libp2p_node, self.floodsub, "a")
 
-        self.pubsub_messages = await self.pubsub.subscribe(topic)
+        self.pubsub_messages = None #await self.pubsub.subscribe(topic)
         self.topic = topic
 
         self.ack_protocol = ack_protocol
@@ -63,7 +63,11 @@ class ReceiverNode():
         print("Receiving started")
 
         await self.libp2p_node.connect(sender_node_info)
+
         print("Connection to sender confirmed")
+        print("Creating ack stream with ack protocol " + self.ack_protocol \
+            + ", peer_id " + sender_node_info.peer_id.pretty())
+
         ack_stream = await self.libp2p_node.new_stream(sender_node_info.peer_id, [self.ack_protocol])
         print("Ack stream created")
         asyncio.ensure_future(self.wait_for_end(ack_stream))

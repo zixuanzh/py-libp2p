@@ -58,9 +58,12 @@ class Mplex(IMuxedConn):
         """
         # TODO: propagate up timeout exception and catch
         # TODO: pass down timeout from user and use that
+        print("read buffer hit")
+        print(self.buffers)
         if stream_id in self.buffers:
             try:
-                data = await asyncio.wait_for(self.buffers[stream_id].get(), timeout=8)
+                data = await asyncio.wait_for(self.buffers[stream_id].get(), timeout=30)
+                print("data received")
                 return data
             except asyncio.TimeoutError:
                 return None
@@ -99,6 +102,7 @@ class Mplex(IMuxedConn):
         :return: True if success
         """
         # << by 3, then or with flag
+        print("sending message")
         header = (stream_id << 3) | flag
         header = encode_uvarint(header)
 
@@ -128,7 +132,9 @@ class Mplex(IMuxedConn):
         # TODO Deal with other types of messages using flag (currently _)
 
         while True:
+            print("Message read waiting")
             stream_id, flag, message = await self.read_message()
+            print("Message read occ")
 
             if stream_id is not None and flag is not None and message is not None:
                 if stream_id not in self.buffers:
@@ -153,9 +159,11 @@ class Mplex(IMuxedConn):
 
         # Timeout is set to a relatively small value to alleviate wait time to exit
         #  loop in handle_incoming
-        timeout = 0.1
+        timeout = 10
         try:
+            print("Getting header")
             header = await decode_uvarint_from_stream(self.raw_conn.reader, timeout)
+            print("Got header")
             length = await decode_uvarint_from_stream(self.raw_conn.reader, timeout)
             message = await asyncio.wait_for(self.raw_conn.reader.read(length), timeout=timeout)
         except asyncio.TimeoutError:

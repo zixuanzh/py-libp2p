@@ -2,18 +2,21 @@ import asyncio
 import json 
 import multiaddr
 import sys
+import time
 from libp2p.peer.id import ID
 from sender import SenderNode
 from receiver import ReceiverNode
 from libp2p.peer.peerinfo import info_from_p2p_addr
 from tests.utils import cleanup
-
-ACK_PROTOCOL = "/ack/1.0.0"
+from Crypto.PublicKey import RSA
+from libp2p.peer.id import id_from_public_key
 
 """
 Driver is called in the following way
 python receiver_driver.py topology_config.json "my_node_id"
 """
+
+SLEEP_TIME = 5
 
 async def connect(node1, node2_addr):
     # node1 connects to node2
@@ -77,33 +80,45 @@ async def main():
     # Get my topic
     my_topic = topology_config_dict["topic_map"][my_node_id]
 
+    ack_protocol = topology_config_dict["ACK_PROTOCOL"]
+
     # Create Receiver Node
     print("Creating receiver")
     my_transport_opt_str = topology_config_dict["node_id_map"][my_node_id]
-    receiver_node = await ReceiverNode.create(my_node_id, my_transport_opt_str, ACK_PROTOCOL, my_topic)
+    receiver_node = await ReceiverNode.create(my_node_id, my_transport_opt_str, ack_protocol, my_topic)
     print("Receiver created")
-    # TODO: sleep for like 15 seconds to let other nodes start up
+
+    # Allow for all nodes to start up
+    # await asyncio.sleep(SLEEP_TIME)
+
+    new_key = RSA.generate(2048, e=65537)
+    id_opt = id_from_public_key(new_key.publickey())
 
     # Connect receiver node to all other relevant receiver nodes
     for neighbor in topology_config_dict["topology"][my_node_id]:
         neighbor_addr_str = topology_config_dict["node_id_map"][neighbor]
 
         # Add p2p part
-        neighbor_addr_str += "/p2p/" + ID("peer-" + neighbor).pretty()
-
+        neighbor_addr_str += "/p2p/" + id_opt.pretty()
+        print(neighbor_addr_str)
         # Convert neighbor_addr_str to multiaddr
         neighbor_addr = multiaddr.Multiaddr(neighbor_addr_str)
         await connect(receiver_node.libp2p_node, neighbor_addr)
 
+    return
+
     # Get sender info as multiaddr
-    sender_addr_str = topology_config_dict["node_id_map"]["sender"]
+    sender_addr_str = topology_config_dict["node_id_map"]["sender"] + "/p2p/" + id_opt.pretty()
 
     # Convert sender_info_str to multiaddr
     sender_addr = multiaddr.Multiaddr(sender_addr_str)
 
+    # Convert sender_addr to sender_info
+    sender_info = info_from_p2p_addr(sender_addr)
+
     # Start listening for messages from sender
     print("Start receiving called")
-    asyncio.ensure_future(receiver.start_receiving(sender_addr))
+    asyncio.ensure_future(receiver_node.start_receiving(sender_info))
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()

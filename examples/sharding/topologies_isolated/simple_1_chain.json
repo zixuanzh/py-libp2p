@@ -1,0 +1,14 @@
+{
+    "node_id_map": {
+        "sender": "/ip4/127.0.0.1/tcp/8004",
+        "0": "/ip4/127.0.0.1/tcp/8005"
+    },
+    "topology": {
+        "sender": ["0"],
+        "0": ["sender"]
+    },
+    "topic_map": {
+        "0": "topic1"
+    },
+    "ACK_PROTOCOL": "/ack/1.0.0"
+}

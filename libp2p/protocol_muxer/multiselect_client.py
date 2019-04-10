@@ -26,13 +26,16 @@ class MultiselectClient(IMultiselectClient):
         # TODO: Use format used by go repo for messages
 
         # Send our MULTISELECT_PROTOCOL_ID to counterparty
+        print("handshake entered")
         await communicator.write(MULTISELECT_PROTOCOL_ID)
-
+        print("MULTISELECT_PROTOCOL_ID written " + MULTISELECT_PROTOCOL_ID)
         # Read in the protocol ID from other party
         handshake_contents = await communicator.read_stream_until_eof()
+        print("handshake read " + handshake_contents)
 
         # Confirm that the protocols are the same
         if not validate_handshake(handshake_contents):
+            print("multiselect protocol ID mismatch")
             raise MultiselectClientError("multiselect protocol ID mismatch")
 
         # Handshake succeeded if this point is reached
@@ -67,11 +70,17 @@ class MultiselectClient(IMultiselectClient):
         :return: selected protocol
         """
 
+        print("select_one_of")
+
         # Create a communicator to handle all communication across the stream
         communicator = MultiselectCommunicator(stream)
 
+        print("Pre handshake")
+
         # Perform handshake to ensure multiselect protocol IDs match
         await self.handshake(communicator)
+
+        print("Post handshake")
 
         # For each protocol, attempt to select that protocol
         # and return the first protocol selected
@@ -80,6 +89,7 @@ class MultiselectClient(IMultiselectClient):
                 selected_protocol = await self.try_select(communicator, protocol)
                 return selected_protocol
             except MultiselectClientError:
+                print("MultiselectClientError")
                 pass
 
         # No protocols were found, so return no protocols supported error

@@ -65,21 +65,22 @@ class Swarm(INetwork):
             # set muxed connection equal to existing muxed connection
             muxed_conn = self.connections[peer_id]
         else:
+            print("Dialing " + str(peer_id))
             # Dial peer (connection to peer does not yet exist)
             # Transport dials peer (gets back a raw conn)
             raw_conn = await self.transport.dial(multiaddr, self.self_id)
-
+            print("raw conn created")
             # Use upgrader to upgrade raw conn to muxed conn
             muxed_conn = self.upgrader.upgrade_connection(raw_conn, \
                 self.generic_protocol_handler, peer_id)
-
+            print("mux conn created")
             # Store muxed connection in connections
             self.connections[peer_id] = muxed_conn
 
             # Call notifiers since event occurred
-            for notifee in self.notifees:
-                await notifee.connected(self, muxed_conn)
-
+            # for notifee in self.notifees:
+                # await notifee.connected(self, muxed_conn)
+        print("Muxed conn returned")
         return muxed_conn
 
     async def new_stream(self, peer_id, protocol_ids):
@@ -88,6 +89,7 @@ class Swarm(INetwork):
         :param protocol_id: protocol id
         :return: net stream instance
         """
+        print("New stream")
         # Get peer info from peer store
         addrs = self.peerstore.addrs(peer_id)
 
@@ -96,23 +98,34 @@ class Swarm(INetwork):
 
         multiaddr = addrs[0]
 
+        print("Dialing peer")
         muxed_conn = await self.dial_peer(peer_id)
+
+        print("Opening stream")
 
         # Use muxed conn to open stream, which returns
         # a muxed stream
         # TODO: Remove protocol id from being passed into muxed_conn
         muxed_stream = await muxed_conn.open_stream(protocol_ids[0], multiaddr)
 
+        print("Selecting protocol " + str(protocol_ids))
+
         # Perform protocol muxing to determine protocol to use
         selected_protocol = await self.multiselect_client.select_one_of(protocol_ids, muxed_stream)
+
+        print("Creating net stream")
 
         # Create a net stream with the selected protocol
         net_stream = NetStream(muxed_stream)
         net_stream.set_protocol(selected_protocol)
 
+        print("Calling notifees")
+
         # Call notifiers since event occurred
         for notifee in self.notifees:
             await notifee.opened_stream(self, net_stream)
+        
+        print("Returning net stream")
 
         return net_stream
 
@@ -135,8 +148,11 @@ class Swarm(INetwork):
                 return True
 
             async def conn_handler(reader, writer):
+                print("conn handler hit on listen")
+                print(multiaddr)
                 # Read in first message (should be peer_id of initiator) and ack
                 peer_id = id_b58_decode((await reader.read(1024)).decode())
+                print("Conn handler hit peer_id " + str(peer_id))
 
                 writer.write("received peer id".encode())
                 await writer.drain()
@@ -152,8 +168,8 @@ class Swarm(INetwork):
                 self.connections[peer_id] = muxed_conn
 
                 # Call notifiers since event occurred
-                for notifee in self.notifees:
-                    await notifee.connected(self, muxed_conn)
+                # for notifee in self.notifees:
+                    # await notifee.connected(self, muxed_conn)
 
             try:
                 # Success

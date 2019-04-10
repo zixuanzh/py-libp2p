@@ -24,6 +24,9 @@ class ID:
             return "<peer.ID %s>" % pid
         return "<peer.ID %s*%s>" % (pid[:2], pid[len(pid)-6:])
 
+    def __len__(self):
+        return len(self._id_str)
+
     __repr__ = __str__
 
     def __eq__(self, other):
