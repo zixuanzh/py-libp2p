@@ -42,7 +42,7 @@ async def main():
     # Convert neighbor_addr_str to multiaddr
     neighbor_addr = multiaddr.Multiaddr(neighbor_addr_str)
     await connect(node1.libp2p_node, neighbor_addr)
-    await asyncio.sleep(5)
+    await asyncio.sleep(10)
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
