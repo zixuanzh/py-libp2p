@@ -33,8 +33,11 @@ async def write_data(stream):
 async def run(port, destination):
     external_ip = urllib.request.urlopen(
         'https://v4.ident.me/').read().decode('utf8')
+    transport_opt_str = "/ip4/%s/tcp/%s" % (external_ip, port)
     host = await new_node(
-        transport_opt=["/ip4/%s/tcp/%s" % (external_ip, port)])
+        transport_opt=[transport_opt_str])
+    addr = multiaddr.Multiaddr(transport_opt_str)
+    await host.get_network().listen(addr)
     if not destination:  # its the server
         async def stream_handler(stream):
             asyncio.ensure_future(read_data(stream))
@@ -43,10 +46,10 @@ async def run(port, destination):
 
         port = None
         ip = None
-        for listener in host.network.listeners.values():
-            for addr in listener.get_addrs():
-                ip = addr.value_for_protocol('ip4')
-                port = int(addr.value_for_protocol('tcp'))
+        # for listener in host.get_network().listeners.values():
+            # for addr in listener.get_addrs():
+        ip = addr.value_for_protocol('ip4')
+        port = int(addr.value_for_protocol('tcp'))
 
         if not port:
             raise RuntimeError("was not able to find the actual local port")
@@ -57,6 +60,7 @@ async def run(port, destination):
 
     else: # its the client
         m = multiaddr.Multiaddr(destination)
+        print(m)
         info = info_from_p2p_addr(m)
         # Associate the peer with local ip address
         await host.connect(info)
@@ -76,7 +80,6 @@ async def run(port, destination):
 @click.option('--help', is_flag=True, default=False, help='display help')
 # @click.option('--debug', is_flag=True, default=False, help='Debug generates the same node ID on every execution')
 def main(port, destination, help):
-
     if help:
         print("This program demonstrates a simple p2p chat application using libp2p\n\n")
         print("Usage: Run './chat -p <SOURCE_PORT>' where <SOURCE_PORT> can be any port number.")
