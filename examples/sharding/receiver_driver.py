@@ -2,6 +2,7 @@ import asyncio
 import json 
 import multiaddr
 import sys
+from libp2p.peer.id import ID
 from sender import SenderNode
 from receiver import ReceiverNode
 from libp2p.peer.peerinfo import info_from_p2p_addr
@@ -16,7 +17,6 @@ python receiver_driver.py topology_config.json "my_node_id"
 
 async def connect(node1, node2_addr):
     # node1 connects to node2
-    print(node2_addr)
     info = info_from_p2p_addr(node2_addr)
     await node1.connect(info)
 
@@ -79,16 +79,21 @@ async def main():
 
     # Create Receiver Node
     print("Creating receiver")
-    receiver_node = await ReceiverNode.create(ACK_PROTOCOL, my_topic)
+    my_transport_opt_str = topology_config_dict["node_id_map"][my_node_id]
+    receiver_node = await ReceiverNode.create(my_node_id, my_transport_opt_str, ACK_PROTOCOL, my_topic)
     print("Receiver created")
+    # TODO: sleep for like 15 seconds to let other nodes start up
 
     # Connect receiver node to all other relevant receiver nodes
     for neighbor in topology_config_dict["topology"][my_node_id]:
         neighbor_addr_str = topology_config_dict["node_id_map"][neighbor]
 
+        # Add p2p part
+        neighbor_addr_str += "/p2p/" + ID("peer-" + neighbor).pretty()
+
         # Convert neighbor_addr_str to multiaddr
         neighbor_addr = multiaddr.Multiaddr(neighbor_addr_str)
-        await connect(receiver_node, neighbor_addr)
+        await connect(receiver_node.libp2p_node, neighbor_addr)
 
     # Get sender info as multiaddr
     sender_addr_str = topology_config_dict["node_id_map"]["sender"]

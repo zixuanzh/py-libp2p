@@ -6,6 +6,7 @@ from libp2p.peer.peerinfo import info_from_p2p_addr
 from libp2p.pubsub.pubsub import Pubsub
 from libp2p.pubsub.floodsub import FloodSub
 from tests.pubsub.utils import message_id_generator
+from libp2p.peer.id import ID
 
 TOPIC = "eth"
 SUPPORTED_PUBSUB_PROTOCOLS = ["/floodsub/1.0.0"]
@@ -21,7 +22,7 @@ class ReceiverNode():
         self.next_msg_id_func = message_id_generator(0)
 
     @classmethod
-    async def create(cls, ack_protocol, topic):
+    async def create(cls, node_id, transport_opt_str, ack_protocol, topic):
         """
         Create a new ReceiverNode and attach a libp2p node, a floodsub, and a pubsub
         instance to this new node
@@ -31,8 +32,10 @@ class ReceiverNode():
         """
         self = ReceiverNode()
 
-        libp2p_node = await new_node(transport_opt=["/ip4/127.0.0.1/tcp/0"])
-        await libp2p_node.get_network().listen(multiaddr.Multiaddr("/ip4/127.0.0.1/tcp/0"))
+        id_opt = ID("peer-" + node_id)
+
+        libp2p_node = await new_node(id_opt=id_opt, transport_opt=[transport_opt_str])
+        await libp2p_node.get_network().listen(multiaddr.Multiaddr(transport_opt_str))
 
         self.libp2p_node = libp2p_node
 
