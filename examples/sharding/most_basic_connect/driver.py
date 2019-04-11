@@ -41,10 +41,16 @@ async def main():
 
         # Convert neighbor_addr_str to multiaddr
         neighbor_addr = multiaddr.Multiaddr(neighbor_addr_str)
+        print("Connecting")
         await connect(node.libp2p_node, neighbor_addr)
-    await asyncio.sleep(5)
+        print("Creating new stream")
+        s = await node.libp2p_node.new_stream(id_opt, ["/foo/1"])
+        await s.write("foo".encode())
+    await asyncio.sleep(15)
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-    loop.close()
+    # loop.run_until_complete(main())
+    asyncio.ensure_future(main())
+    loop.run_forever()
+    # loop.close()

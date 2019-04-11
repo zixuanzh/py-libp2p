@@ -31,8 +31,7 @@ async def write_data(stream):
 
 
 async def run(port, destination):
-    external_ip = urllib.request.urlopen(
-        'https://v4.ident.me/').read().decode('utf8')
+    external_ip = "192.168.1.39"
     transport_opt_str = "/ip4/%s/tcp/%s" % (external_ip, port)
     host = await new_node(
         transport_opt=[transport_opt_str])
