@@ -88,9 +88,42 @@ await node1.connect(info_node2)
 
 ### Streams between two peers
 
-The central component to the libp2p paradigm is the stream, which represents a channel for communication over an underlying connection. There can be multiple streams over the same underlying connection. Here, we will go over how to setup two nodes to communicate over streams. We refer to the node that initiates the stream (i.e. asks the other node to create a stream) as the initiator and we refer to the node that receives the initiation message as the receiver.
+The central component to the libp2p paradigm is the stream, which represents a channel for communication over an underlying connection. There can be multiple streams over the same underlying connection. Here, we will go over how to setup two nodes to communicate over streams. When we create a new stream, we need to specify what protocol we would like to communicate over. In order for the opposing node to accept the new stream request, the opposing node needs to support at least one of the protocols specified in the new stream creation message.
 
-In order for node2 to open a stream to node1, node2 must have node1 as a peer (remember, we only added node2 as a peer of node1 earlier).
+First, node2 creates a stream handler for each protocol it supports. The stream handler will be hit when a new stream, initiated by an outside node, is successfully created on that particular protocol. For now, node2 will only support '/foo/1.0.0'.
+
+```
+node2
+-----
+async def stream_handler(stream):
+    read_data = await stream.read()
+    read_str = read_data.decode()
+
+    # Print read_str
+    print(read_str)
+
+node2.set_stream_handler("/foo/1.0.0", stream_handler)
+```
+
+Next, node1 creates a new stream to node2 by specifiying node2's peer ID and the list of protocol node1 is willing to communicate with node2 over. Since, node2 only has a stream handler '/foo/1.0.0', node1 and node2 will agree to communicate over '/foo/1.0.0'.
+
+```
+node1
+-----
+supported_protocols = ["/foo/1.0.0", "/bar/1.0.0"]
+stream = await node1.new_stream(node_b.get_id(), supported_protocols)
+
+# Print out protocol id so we can see which protocol we will be communicating over
+print(stream.protocol_id)
+
+# Write data to stream
+encoded_str = "I <3 libp2p".encode()
+await stream.write(encoded_str)
+```
+
+Woohoo! We have successfully written data from node1 to node2. Streams can be used for much more complex communication than just prints. Also, node1 and node2 can open many streams to each other using this same code but with different supported protocols and stream handlers.
+
+Note: In order for node2 to open a stream to node1, node2 must have node1 as a peer (remember, we only added node2 as a peer of node1 earlier). -- TODO: update this statement if we change this
 
 
 ### Floodsub between two peers
