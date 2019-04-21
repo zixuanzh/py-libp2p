@@ -37,6 +37,64 @@ pytest
 ```
 Note that tests/libp2p/test_libp2p.py contains an end-to-end messaging test between two libp2p hosts, which is the bulk of our proof of concept.
 
+## Quickstart Guide
+
+This quickstart guide will teach you how to quickly get py-libp2p up and running, and how to take advantage of its various features. Since libp2p at its core is a distributed systems library, this quickstart guide will use explain all concepts with nodes. These two libp2p nodes that are labelled node1 and node2, respectively.
+
+### Creating a libp2p node
+
+A libp2p node, at a high-level, is used for connecting and communicating with peers running libp2p. Connecting with peers implies opening a connection to a peer over which communication via streams (discussed in next section) can take place.
+
+First, we create a libp2p instance on node1 and start listening on port 8000:
+```
+node1
+-----
+import multiaddr
+from libp2p import new_node
+
+host = await new_node()
+await host.get_network().listen(multiaddr.Multiaddr("/ip4/127.0.0.1/tcp/8000"))
+```
+
+Then, we create a libp2p instance on node2 and start listening on port 8001
+```
+node2
+-----
+import multiaddr
+from libp2p import new_node
+
+host = await new_node()
+await host.get_network().listen(multiaddr.Multiaddr("/ip4/127.0.0.1/tcp/8001"))
+```
+
+Now, we have two libp2p nodes. Next, let's make them connect.
+
+### Connecting two libp2p nodes
+
+In order to connect node1 to node2, node1 must have node2 as a peer. This is so that the nodes know who they are connecting to. So, let's add node2 as a peer of node1 and let's add node1 as a peer of node2. TODO: dicuss p2p IDs
+
+```
+node1
+-----
+from libp2p.peer.peerinfo import info_from_p2p_addr
+
+# Add node2 as a peer of node1
+addr_of_node2 = multiaddr.Multiaddr("/ip4/127.0.0.1/tcp/8001/p2p/TODO")
+info_node2 = info_from_p2p_addr(addr_of_node2)
+
+# Connect node1 to node2
+await node1.connect(info_node2)
+```
+
+### Streams between two peers
+
+The central component to the libp2p paradigm is the stream, which represents a channel for communication over an underlying connection. There can be multiple streams over the same underlying connection. Here, we will go over how to setup two nodes to communicate over streams. We refer to the node that initiates the stream (i.e. asks the other node to create a stream) as the initiator and we refer to the node that receives the initiation message as the receiver.
+
+In order for node2 to open a stream to node1, node2 must have node1 as a peer (remember, we only added node2 as a peer of node1 earlier).
+
+
+### Floodsub between two peers
+
 ## Feature Breakdown
 py-libp2p aims for conformity with [the standard libp2p modules](https://github.com/libp2p/libp2p/blob/master/REQUIREMENTS.md#libp2p-modules-implementations). Below is a breakdown of the modules we have developed, are developing, and may develop in the future.
 
