@@ -10,19 +10,8 @@ from ordered_queue import OrderedQueue
 SUPPORTED_PUBSUB_PROTOCOLS = ["/floodsub/1.0.0"]
 BEE_MOVIE_TOPIC = "bee_movie"
 
-# Message format:
-# Sending crypto: <source>,<dest>,<amount as integer>
-#                 Ex. send,aspyn,alex,5
-# Set crypto: <dest>,<amount as integer>
-#                 Ex. set,rob,5
-# Determine message type by looking at first item before first comma
 
 class MsgOrderingNode():
-    """
-    Node which has an internal balance mapping, meant to serve as 
-    a dummy crypto blockchain. There is no actual blockchain, just a simple
-    map indicating how much crypto each user in the mappings holds
-    """
 
     def __init__(self):
         self.balances = {}
@@ -71,12 +60,10 @@ class MsgOrderingNode():
         asyncio.ensure_future(self.handle_incoming_msgs())
 
     async def publish_bee_movie_word(self, word, msg_id=None):
-        # print("Publish hit for " + word)
         my_id = str(self.libp2p_node.get_id())
         if msg_id is None:
             msg_id = self.next_msg_id_func()
         packet = generate_RPC_packet(my_id, [BEE_MOVIE_TOPIC], word, msg_id)
-        # print("Packet generated")
         await self.floodsub.publish(my_id, packet.SerializeToString())
 
     async def handle_bee_movie_word(self, seqno, word):
@@ -87,9 +74,3 @@ class MsgOrderingNode():
         # Get just the word (and not the seqno) and return the word
         next_word = (await self.priority_queue.get())[1]
         return next_word
-        # if (self.priority_queue.qsize() > 0 and \
-        #     self.priority_queue[0][0] == self.last_word_gotten_seqno + 1):
-        #     return await self.priority_queue.get()
-        # else:
-        #     # Wait until a word is put with next_word_seqno == self.last_word_gotten_seqno + 1
-        #     # Then return first element of priority queue
