@@ -1,18 +1,25 @@
 import asyncio
-import multiaddr
-import pytest
+from threading import Thread
 import struct
+import pytest
 import urllib.request
 
-from threading import Thread
-from tests.utils import cleanup
-from libp2p import new_node
 from libp2p.peer.peerinfo import info_from_p2p_addr
-from libp2p.pubsub.pubsub import Pubsub
-from libp2p.pubsub.floodsub import FloodSub
-from msg_ordering_node import MsgOrderingNode
+from .msg_ordering_node import MsgOrderingNode
+from tests.utils import cleanup
 
 # pylint: disable=too-many-locals
+
+"""
+Test-cases demonstrating how to create nodes that continuously stream data
+and ensure that data is delivered to each node with pre-determined ordering.
+The ordering is such that if a peer A sends a publish 1 and 2 with seqno=1 and with seqno=2,
+respectively, even if the publish 2 (with seqno=2) reaches the peers first, it will not
+be processed until seqno=1 is received (and then publish 1 with seqno=1 must be
+processed before publish 2 with seqno=2 will be).
+
+This concept is demonstrated by streaming the script to the entire bee movie to several nodes
+"""
 
 async def connect(node1, node2):
     # node1 connects to node2
@@ -37,7 +44,7 @@ async def perform_test(num_nodes, adjacency_map, action_func, assertion_func):
 
     # Create nodes
     dummy_nodes = []
-    for i in range(num_nodes):
+    for _ in range(num_nodes):
         dummy_nodes.append(await MsgOrderingNode.create())
 
     # Create network
@@ -148,7 +155,7 @@ async def test_simple_two_nodes_two_words_read_then_publish_out_of_order_ids():
             asyncio.sleep(0.25), \
             dummy_nodes[0].publish_bee_movie_word("word 2", struct.pack('>I', 2)),\
             dummy_nodes[0].publish_bee_movie_word("word 1", struct.pack('>I', 1)))
-        
+
         # Store collected words to be checked in assertion func
         nonlocal collected
         collected = words
@@ -185,10 +192,10 @@ async def test_simple_two_nodes_ten_words_out_of_order_ids():
         tasks.append(asyncio.sleep(0.25))
 
         for i in range(len(words)):
-            tasks.append(dummy_nodes[0].publish_bee_movie_word(words[i], msg_ids[i]))    
+            tasks.append(dummy_nodes[0].publish_bee_movie_word(words[i], msg_ids[i]))
 
         res = await asyncio.gather(*tasks)
-        
+
         nonlocal collected
         collected = res[0]
 
@@ -228,10 +235,10 @@ async def test_simple_five_nodes_rings_words_out_of_order_ids():
         tasks.append(asyncio.sleep(0.25))
 
         for i in range(len(words)):
-            tasks.append(dummy_nodes[0].publish_bee_movie_word(words[i], msg_ids[i]))    
+            tasks.append(dummy_nodes[0].publish_bee_movie_word(words[i], msg_ids[i]))
 
         res = await asyncio.gather(*tasks)
-        
+
         nonlocal collected
         for i in range(num_nodes):
             collected.append(res[i])
@@ -272,10 +279,10 @@ async def test_simple_seven_nodes_tree_words_out_of_order_ids():
         tasks.append(asyncio.sleep(0.25))
 
         for i in range(len(words)):
-            tasks.append(dummy_nodes[0].publish_bee_movie_word(words[i], msg_ids[i]))    
+            tasks.append(dummy_nodes[0].publish_bee_movie_word(words[i], msg_ids[i]))
 
         res = await asyncio.gather(*tasks)
-        
+
         nonlocal collected
         for i in range(num_nodes):
             collected.append(res[i])
@@ -336,11 +343,11 @@ async def test_simple_two_nodes_bee_movie():
 
         print("Add publish")
         for i in range(len(words)):
-            tasks.append(dummy_nodes[0].publish_bee_movie_word(words[i]))    
+            tasks.append(dummy_nodes[0].publish_bee_movie_word(words[i]))
 
         print("Perform gather")
         res = await asyncio.gather(*tasks)
-        
+
         print("Filling collected")
         nonlocal collected
         for i in range(num_nodes):
@@ -398,11 +405,11 @@ async def test_simple_seven_nodes_tree_bee_movie():
 
         print("Add publish")
         for i in range(len(words)):
-            tasks.append(dummy_nodes[0].publish_bee_movie_word(words[i]))    
+            tasks.append(dummy_nodes[0].publish_bee_movie_word(words[i]))
 
         print("Perform gather")
         res = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         print("Filling collected")
         nonlocal collected
         for i in range(num_nodes):

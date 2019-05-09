@@ -5,7 +5,7 @@ from tests.pubsub.utils import message_id_generator, generate_RPC_packet
 from libp2p import new_node
 from libp2p.pubsub.pubsub import Pubsub
 from libp2p.pubsub.floodsub import FloodSub
-from ordered_queue import OrderedQueue
+from .ordered_queue import OrderedQueue
 
 SUPPORTED_PUBSUB_PROTOCOLS = ["/floodsub/1.0.0"]
 BEE_MOVIE_TOPIC = "bee_movie"
@@ -17,12 +17,15 @@ class MsgOrderingNode():
         self.balances = {}
         self.next_msg_id_func = message_id_generator(0)
         self.priority_queue = OrderedQueue()
-        # self.last_word_gotten_seqno = 0
+
+        self.libp2p_node = None
+        self.floodsub = None
+        self.pubsub = None
 
     @classmethod
     async def create(cls):
         """
-        Create a new DummyAccountNode and attach a libp2p node, a floodsub, and a pubsub
+        Create a new MsgOrderingNode and attach a libp2p node, a floodsub, and a pubsub
         instance to this new node
 
         We use create as this serves as a factory function and allows us
@@ -44,7 +47,7 @@ class MsgOrderingNode():
         Handle all incoming messages on the BEE_MOVIE_TOPIC from peers
         """
         while True:
-            incoming = await self.q.get()  
+            incoming = await self.queue.get()
             seqno = int.from_bytes(incoming.seqno, byteorder='big')
             word = incoming.data.decode('utf-8')
 
@@ -55,11 +58,12 @@ class MsgOrderingNode():
         Subscribe to BEE_MOVIE_TOPIC and perform call to function that handles
         all incoming messages on said topic
         """
-        self.q = await self.pubsub.subscribe(BEE_MOVIE_TOPIC)
+        self.queue = await self.pubsub.subscribe(BEE_MOVIE_TOPIC)
 
         asyncio.ensure_future(self.handle_incoming_msgs())
 
     async def publish_bee_movie_word(self, word, msg_id=None):
+        # Publish a bee movie word to all peers
         my_id = str(self.libp2p_node.get_id())
         if msg_id is None:
             msg_id = self.next_msg_id_func()
@@ -67,7 +71,7 @@ class MsgOrderingNode():
         await self.floodsub.publish(my_id, packet.SerializeToString())
 
     async def handle_bee_movie_word(self, seqno, word):
-        # print("Handle hit for " + str(seqno) + ", " + word)
+        # Handle bee movie word received
         await self.priority_queue.put((seqno, word))
 
     async def get_next_word_in_bee_movie(self):
