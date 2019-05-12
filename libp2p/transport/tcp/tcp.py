@@ -28,7 +28,7 @@ class TCP(ITransport):
             :return: return True if successful
             """
             _multiaddr = multiaddr
-            _multiaddr = _multiaddr.decapsulate('/p2p')
+            # _multiaddr = _multiaddr.decapsulate('/p2p')
 
             coroutine = asyncio.start_server(self.handler,
                                              _multiaddr.value_for_protocol('ip4'),

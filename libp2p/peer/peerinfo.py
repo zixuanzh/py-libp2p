@@ -1,6 +1,6 @@
 import multiaddr
-import multiaddr.util
 
+from .utils import join, split
 from .id import id_b58_decode
 from .peerdata import PeerData
 
@@ -16,7 +16,7 @@ def info_from_p2p_addr(addr):
     if not addr:
         raise InvalidAddrError()
 
-    parts = multiaddr.util.split(addr)
+    parts = split(addr)
     if not parts:
         raise InvalidAddrError()
 
@@ -30,7 +30,7 @@ def info_from_p2p_addr(addr):
 
     # we might have received just an / p2p part, which means there's no addr.
     if len(parts) > 1:
-        addr = multiaddr.util.join(parts[:-1])
+        addr = join(parts[:-1])
 
     peer_data = PeerData()
     peer_data.addrs = [addr]
