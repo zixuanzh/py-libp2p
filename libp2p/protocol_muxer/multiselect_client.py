@@ -88,6 +88,7 @@ class MultiselectClient(IMultiselectClient):
         # No protocols were found, so return no protocols supported error
         raise MultiselectClientError("protocols not supported")
 
+
 def validate_handshake(handshake_contents: str) -> bool:
     """
     Determine if handshake is valid and should be confirmed
