@@ -23,6 +23,10 @@ class RawConnection(IRawConnection):
         self._drain_lock = asyncio.Lock()
 
     async def write(self, data: bytes) -> None:
+        # Detect if underlying transport is closing before write data to it
+        # ref: https://github.com/ethereum/trinity/pull/614
+        if self.writer.transport.is_closing():
+            raise ConnectionResetError("Transport is closing")
         self.writer.write(data)
         # Reference: https://github.com/ethereum/lahja/blob/93610b2eb46969ff1797e0748c7ac2595e130aef/lahja/asyncio/endpoint.py#L99-L102  # noqa: E501
         # Use a lock to serialize drain() calls. Circumvents this bug:
